@@ -1,0 +1,679 @@
+---
+# IMPORTANT: Change settings here, but DO NOT change the spacing.
+# Remove comments and add values where applicable.
+# The descriptions below should be self-explanatory
+
+title: "An examination of portfolio optimization using the JSE Top 40 dataset through the application of the Dynamic Conditional Correlation approach"
+#subtitle: "This will appear as Right Header"
+
+documentclass: "elsarticle"
+
+# --------- Thesis title (Optional - set to FALSE by default).
+# You can move the details below around as you please.
+Thesis_FP: FALSE
+# Entry1: "An unbelievable study with a title spanning multiple lines."
+# Entry2: "\\textbf{Nico Katzke}" # textbf for bold
+# Entry3: "A thesis submitted toward the degree of Doctor of Philosophy"
+# Uni_Logo: Tex/Logo.png # Place a  png logo in an img folder in your root and uncomment this. Leave uncommented for no image
+# Logo_width: 0.3 # If using a logo - use this to set width (size) of image
+# Entry4: "Under the supervision of: \\vfill Prof. Joe Smith and Dr. Frank Smith"
+# Entry5: "Stellenbosch University"
+# Entry6: April 2020
+# Entry7:
+# Entry8:
+
+# --------- Front Page
+# Comment: ----- Follow this pattern for up to 5 authors
+AddTitle: TRUE # Use FALSE when submitting to peer reviewed platform. This will remove author names.
+Author1: "Nico Katzke"  # First Author - note the thanks message displayed as an italic footnote of first page.
+Ref1: "Prescient Securities, Cape Town, South Africa" # First Author's Affiliation
+Email1: "nfkatzke\\@gmail.com" # First Author's Email address
+
+Author2: "Willem Schalk Pienaar"
+Ref2: "University of Stellenbosh, Stellenbosch, South Africa"
+Email2: "18260136\\@sun.ac.za"
+CommonAffiliation_12: TRUE # If Author 1 and 2 have a common affiliation. Works with _13, _23, etc.
+
+
+CorrespAuthor_1: FALSE  # If corresponding author is author 3, e.g., use CorrespAuthor_3: TRUE
+
+keywords: "Multivariate GARCH \\sep Portffolio Optimization \\sep Efficient Market Hypothesis" # Use \\sep to separate
+
+# ----- Manage headers and footers:
+#BottomLFooter: $Title$
+#BottomCFooter:
+#TopLHeader: \leftmark # Adds section name at topleft. Remove comment to add it.
+BottomRFooter: "\\footnotesize Page \\thepage" # Add a '#' before this line to remove footer.
+addtoprule: TRUE
+addfootrule: TRUE               # Use if footers added. Add '#' to remove line.
+
+# --------- page margins:
+margin: 2.3 # Sides
+bottom: 2 # bottom
+top: 2.5 # Top
+HardSet_layout: TRUE # Hard-set the spacing of words in your document. This will stop LaTeX squashing text to fit on pages, e.g.
+# This is done by hard-setting the spacing dimensions. Set to FALSE if you want LaTeX to optimize this for your paper.
+
+# --------- Line numbers
+linenumbers: FALSE # Used when submitting to journal
+
+# ---------- References settings:
+# You can download cls format here: https://www.zotero.org/ - simply search for your institution. You can also edit and save cls formats here: https://editor.citationstyles.org/about/
+# Hit download, store it in Tex/ folder, and change reference below - easy.
+bibliography: Tex/ref.bib       # Do not edit: Keep this naming convention and location.
+csl: Tex/harvard-stellenbosch-university.csl # referencing format used.
+# By default, the bibliography only displays the cited references. If you want to change this, you can comment out one of the following:
+#nocite: '@*' # Add all items in bibliography, whether cited or not
+# nocite: |  # add specific references that aren't cited
+#  @grinold2000
+#  @Someoneelse2010
+
+# ---------- General:
+RemovePreprintSubmittedTo: FALSE  # Removes the 'preprint submitted to...' at bottom of titlepage
+Journal: "University of Stellenbosch"   # Journal that the paper will be submitting to, if RemovePreprintSubmittedTo is set to TRUE.
+toc: FALSE                       # Add a table of contents
+numbersections: TRUE             # Should sections (and thus figures and tables) be numbered?
+fontsize: 12pt                  # Set fontsize
+linestretch: 1.5                # Set distance between lines.
+link-citations: TRUE            # This creates dynamic links to the papers in reference list.
+
+### Adding additional latex packages:
+# header-includes:
+#    - \usepackage{colortbl} # Add additional packages here.
+
+output:
+  pdf_document:
+    keep_tex: TRUE
+    template: Tex/TexDefault.txt
+    fig_width: 3.5 # Adjust default figure sizes. This can also be done in the chunks of the text.
+    fig_height: 3.5
+abstract: |
+  The potential of using Dynamic Conditional Correlation(DCC) in order to optimize portfolios are examined. It is found that including the crisis period of 2008 that portfolio optimization fails to provide return to risk properties that outperform the JSE Top 40 when constructing the portfolio from the stocks included within the JSE Top 40. However, in the post crisis period significant outperformance is found for the various models. It is found that there is little difference between the returns of optimized portfolios when examining different specifications of GARCH in the DCC estimation. It is also found that there may exist diversification benifits to including portfolio opimization methods in a portfolio that holds the JSE Top 40.
+---
+
+<!-- First: Set your default preferences for chunk options: -->
+
+<!-- If you want a chunk's code to be printed, set echo = TRUE. message = FALSE stops R printing ugly package loading details in your final paper too. I also suggest setting warning = FALSE and checking for warnings in R, else you might find ugly warnings in your paper. -->
+\newpage
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, fig.width = 6, fig.height = 5, fig.pos="H", fig.pos = 'H')
+# Note: Include = FALSE implies the code is executed, but not printed in your pdf.
+# warning and message = FALSE implies ugly messages and warnings are removed from your pdf.
+# These should be picked up when you execute the command chunks (code sections below) in your rmd, not printed in your paper!
+
+# Lets load in example data, and see how this can be stored and later called from your 'data' folder.
+if(!require("tidyverse")) install.packages("tidyverse")
+
+library(tidyverse)
+
+pacman::p_load(GAS)
+     # install.packages("IntroCompFinR", repos="http://R-Forge.R-project.org")
+# Notice that as you are working in a .Rproj file (I am assuming you are) - the relative paths of your directories start at your specified root.
+# This means that when working in a .Rproj file, you never need to use getwd() - it is assumed as your base root automatically.
+
+```
+
+
+<!-- ############################## -->
+<!-- # Start Writing here: -->
+<!-- ############################## -->
+
+# Introduction \label{Introduction}
+
+The aim of this study is to examine whether the return to risk properties JSE Top 40 market cap weighted index can be beaten using portfolio optimization techniques under strict limitations.  Portfolio optimization is conducted using the Markowitz technique requiring the long run returns and correlation matrices of a portfolio of stocks. While there are no real differences between the calculation of long run returns barring a few statistical properties, there are many methods to calculate the covariance matrix. This study will attempt to compare the standard statistical method of calculating the variance to the standard GARCH (1,1), generalized autoregressive conditional heteroskedasticity, multivariate dynamic conditional correlation model to popular alternative specification for GARCH well as examine the newer Generalized autoregressive score models, GAS, potential in the portfolio optimization space. These comparisons are done in order to find whether it is possible to find better risk/return trade offs within the portfolio in an out of sample basis.  A strict limitation that is imposed is that rebalancing should be limited to avoid transaction cost similar to how they are avoided in the construction of the JSE Top 40 index and that only returns generated by stocks in the JSE at each time period should be included.
+
+Portfolio theory optimization theory really started in 1959 when @markowitz1959portfolio released his classic paper which outlined the mean-variance portfolio model. This theory explained how risk was distributed across a portfolio and how using the covariance matrix, the expected returns and risk-free rate an optimal portfolio could be found. This method, however, had two major problems. The first is that an expected return rate may not be easily found within financial markets. The second is that in financial markets, stock movements are often synchronized based on a common risk factor [@elton1997modern].  This makes it difficult to estimate the required components such that the characteristics of each variable is not lost and thus rendering the mean-variance portfolio model miss specified.
+
+Since the inception of the mean-variance portfolio model there have been significant improvements in the modeling of the covariance matrix [@elton1997modern]. The GARCH family of models have allowed for much better modeling of the changes in the covariance matrix and even accounting for the non-normality of markets.  Recently the Generalized Autoregressive Score GARCH model has been developed and it promises even better modeling of the variance and covariance of and between stocks [@creal2013generalized]. In the past computational load and parameter explosion have limited the ability to apply these models to many stocks [@bauwens2006multivariate]. The focus was instead on finding covariances between different indexes or asset classes, thereby limiting the parameter explosion and computation power needed.  Dynamic conditional correlations were thus developed by @engle2002dynamic which allow for the specification of GARCH on a multivariate basis. This model limits the parameter explosion by modeling the conditional covariances like how the variance would be modeled in a univariate specification. This means far fewer observations are needed to estimate the model and that significance of these estimates should be higher. There are some problems that have been pointed out in DCC modeling of which the most concerning is that the third and fourth moments must converge and that the conditional covariates are the second moments of the covariates and are not the true covariates between stocks [@hafner2012estimation]. However, this method can still be applied to portfolio optimization in order to examine whether the model can provide results better than the JSE Top 40.
+
+# Classical Portfolio Statistics
+
+The classical method for constructing a mean-variance model is as follows [@markowitz1991foundations]. 
+Denote $r_i(t)$ as the return of the $i$th stock at time period t for $i \in (1,2,...,n)$. The forecasted/expected return and variance can then be written as $\hat{r}_i(t+1)$ and $\hat{\sigma}^2 (t+1)$ for time period $t+1)$. Using the original portfolio theory the portfolio can then be constructed using allocation weights $\mathbf{w}(t)= [w_1(T),w_2(t),..., w_n(t)]$, the expected return $\hat{r}_p(t+1)$ and the volatility $\hat{\sigma}_p(t+1)$ of a portfolio. The return and variance can then be estimated as 
+$$\hat{r}_p(t+1)=\mathbf{w}(t)\mathbf{\hat{r}_i(t+1)}$$
+$$\hat{\sigma}_p(t+1)=\mathbf{w}(t)\mathbf{\hat{\Sigma}}(t+1)\mathbf{w'}(t)$$
+With $\mathbf{\hat{r}}_i(t+1)=[ \hat{r}_1(t+1),\hat{r}_2(t+1),...,\hat{r}_n(t+1)]'$ and $\mathbf{\hat{\Sigma}}(t+1)$ the covariance matrix for each element $\hat{\sigma}^2_{ij} (t+1)$ and when $i=j$, $\hat{\sigma}^2_{ij} (t+1)=\hat{\sigma}^2_i (t+1)$
+
+# Mean-Variance Portfolio Model
+The mean-variance portfolio model as developed by @markowitz1959portfolio allows for the calculation of the weights making use of well known statistical methods. The expected return $\hat{r}_i(t+1) = \bar{r}_i(t)$ which is obtained as the simple moving average of the last $T$ periods:
+$$\hat{r}_i(t+1) = \bar{r}_i(t)= \frac{1}{T}\sum_{a=0}^{T-1}r_i(t-a)$$
+Using statistical theory the covariance can then be calculated over the last $T$ periods:
+$$\hat{\sigma}_{ij}(t+1) = \bar{\sigma}_{ij}(t)= \frac{1}{T}\sum_{a=0}^{T-1}[r_i(t-a)-\bar{r}_i(t)].[r_j(t-a)-\bar{r}_j(t)]$$
+By substituting the equations for $\hat{\sigma}_{ij}(t+1)$ and $\hat{r}_i(t+1)$ into the classical Portfolio model the portfolios expected return rate $\hat{r}_p(t+1)$ and variance $\hat{\sigma}_p(t+1)$ can be estimated. Therefore it is possible to optimize the risk return rate through manimpulating the weights $mathbf{w}(t)$. We seek to maximize $\hat{r}_p(t+1)$ and minimize $\hat{\sigma}_p(t+1)$. The Markowitz mean variance ($MV_{SR}$) is often used as the typical measure to optimize the risk:
+$$MV_{SR}= max[\mathbf{w'R}- p \mathbf{w'\Sigma w}]$$
+This optimization problem must be solved through the use of the interior point method. It also adds an additional variable that must be specified namely the risk free rate. The risk free rate decides whether a stock should be included in the portfolio as if it is providing negative return over risk it is better to invest money into a risk free asset and if short selling is allowed it can be assigned a negative weight to optimize the portfolio. Also its important to note that if $\bar{r}_i(t)$ is being used as a measure for $\hat{r}_p(t+1)$ the risk free rate should also be estimated as the mean risk free rate over time. 
+
+# Efficient Market Hypothesis Implications
+
+@fama1960efficient developed the theory of efficient markets. The strong form of efficient market theory states that all information both private and public has been incorporated into asset prices. In theory this would imply that there is no method to outperform the market as any changes in the future would be entirely randomly distributed based on new information that is released. This has widespread implications to mean variance portfolios. It implies that the optimal portfolio must be that of the market portfolio and the market portfolio must be that of the stocks with the largest market cap [@haugen1991efficient]. Market cap weighting is therefore expected to be optimal as stocks will increase in value based on the covariance structure that the stocks exhibit. This implies that when optimizing a portfolio using the Mean-Variance portfolio that the optimal weights will be the weights of the market cap weighted portfolio. Further, should there be any difference between the weights obtained by the Mean-Variance portfolio model and the market cap weighted method, that the covariance matrix used does not contain all information about the structure and will thus have a worse risk to return payoff. Thus, even if the return of the optimal portfolio as obtained by the Mean-Variance model is higher according to the theory it must have higher risks. While not all agree with this definition citing violations in assumptions of the theory [@haugen1991efficient].  Nevertheless it is a powerful statement that, after fees are considered, most active funds fail to consistently beat [@sharpe1991arithmetic].
+
+This creates some expectations for the outcome of this study. It is thus expected that all models used to estimate $\Sigma(t)$ and $r(t)$ to determine the Mean-Variance model will yield inferior risk to return profiles than the market cap weighted portfolio. It also implies that some measure of risk to return comparisons must be made. The classic method that is used in the optimization of the Mean-Variance portfolio is the Sharpe ratio and will therefore also be used to compare the risk to reward outcomes of the different models, although downside risk measures are also examined.
+
+Even though it is expected that the models will yield inferior returns to the market portfolio there is still significant information that can be gleaned from the empirical analysis of these models. Efficient market theory has its detractors and may not be as all encompassing as the strong case makes it out to be [@haugen1991efficient]. Markets are also not entirely rational in their pricing structure according to Behavriol economics and this may weaken the efficient markets arguement [@fehr2005individual].  However, even if no model can beat that of market cap weighting, examining which method of calculating $\Sigma(t)$ yields the best performing portfolio will still be of interest as it can be used in the modeling of joint portfolios of stocks, bonds and other assets in order to find effective weightings across fields which cannot be explained simply by market cap weighting.
+
+# Proposed Portfolio models
+
+## Application of  DCC-GARCH Model (GARCH DCC)
+
+The classical model denotes the portfolios risk as the variance or the covariance matrix as shown above. However, it is possible to denote the covariance matrix based on the prediction errors though the @engle2002dynamic method to write $\mathbf{e}(t)= \mathbf{r}(t) - \mathbf{\hat{r}}(t)$ as
+$$\mathbf{\Sigma}(t)= Cov(\mathbf{r}(t))$$
+$$\mathbf{\Sigma}(t)= E(\mathbf{r}(t) - \mathbf{\hat{r}}(t).(\mathbf{r}(t) - \mathbf{\hat{r}}(t)')$$
+$$\mathbf{\Sigma}(t)= E(\mathbf{e}(t)\mathbf{e}'(t))$$
+It has been shown that the nonlinear prediction error between stocks have a long-term autocorrelation structure. A Dynamic Conditional Correlation(DCC) model can thus improve the estimation accuracy for the covaraiance matrix, the risk of the portfolio. DCC models are a multivariate extension to the univariate GARCH specifications that reduces the computational and observational requirements compared to the traditional multivariate GARCH estimations.
+
+DCC modeling was first proposed by Engle and it models the prediction error as:
+$$\mathbf{e}(t+1) \sim N(0,\mathbf{\Sigma}(t+1))$$
+$$N(0,\mathbf{\Sigma}(t+1))=\mathbf{\Sigma}(t+1)^{\frac{1}{2}}.\mathbf{\epsilon}(t+1) \text{ with } \mathbf{\epsilon}(t+1) \sim N(\mathbf{0,1})$$
+With $\mathbf{\epsilon}(t+1)$ the standard multivariate normal distribution. $\mathbf{\Sigma}(t+1)$ is the conditional covariance matrix which can be decomposed in the following way to find the conditional correlation matrix:
+$$\mathbf{\Sigma}(t+1)=\mathbf{D}(t+1)\mathbf{R}(t+1)\mathbf{D}(t+1)$$
+With $\mathbf{D}(t+1)$ the diagonal matrix of volatility i.e $diag(\sigma_1(t+1),\sigma_2(t+1),...,\sigma_n(t+1)$ and $\mathbf{R}(t+1)$ is the conditional corrlation matrix. The conditional variance $\sigma_i^2(t+1)$
+of $\mathbf{D}(t+1)$ now needs to be found. It can simply be modeled using a univariate GARCH model. For the standard GARCH(1,1) model this is given by:
+$$\sigma^2_i(t+1)=\beta_0+\beta_1\epsilon^2_i +\beta_2\sigma_i^2(t)$$
+The GARCH(1,1) can thus be written as 
+$$\sigma^2_i(t+1)= \beta_0\sum_{j=0}^\infty\beta_2^j+\beta_1\sum_{j=0}^\infty\beta_2^j \epsilon_i^2(t-j)$$
+Which allows for the estimation of the conditional variance $\sigma^2_i(t+1)$ through the use of the long-term autocorrelation structure of the squared prediction errors $\epsilon_i^2(t)$.
+
+The conditional correlation matrix $\mathbf{R}(t+1)$ can then be modeled by:
+$$\mathbf{R}(t+1)=\mathbf{Q}(t+1)^{-1}\mathbf{\bar{Q}}(t+1)\mathbf{Q}^{-1}(t+1)$$
+$$\mathbf{Q}(t+1)=(1-\gamma_1-\gamma_2)\mathbf{\bar{Q}}(t)+\gamma_1\mathbf{\epsilon}(t)\mathbf{\epsilon}'(t)+\gamma_2\mathbf{Q}(t)$$
+$$\mathbf{\bar{Q}}(t)=\frac{1}{N}\sum_{j=0}^{N-1}\mathbf{\epsilon}(t-j)\mathbf{\epsilon}'(t-j)$$
+With $\mathbf{Q}(t)$ the conditional covariance matrix of the standardized errors $\mathbf{\epsilon}(t)= [\mathbf{e}'(t)\mathbf{D}^{-1}(t)]'$ and $\mathbf{\bar{Q}}(t)$ is the unconditional variance matrix of the standardized error terms over the last $N$ periods. For the analysis that is done in this paper $N$ is set to 252 days, this is the number of trading days in a year. This does restrict the sample size meaning slightly lower significance of the estimates, however, for reasons explained in the Restrictions section a limit on lookback period must be placed.
+
+A DCC model can thus be viewed as a multivariate GARCH model. As it allows for the estimation of a covariance matrix this model can become a plug in to Markowitz's mean-variance portfolio model. This is because Markowit's original method is a special case of the DCC model where $\hat{r}(t-j)=\bar{r}(t)$ for $j>0$. $\beta_0=0, \beta_1=\frac{1}{T},\beta_2=1$ if $0\le j \le T-1$ or $\beta_2=0$ if $T\le j$, $\mathbf{\epsilon}(t-j)=\mathbf{r}(t-j)-\bar{\mathbf{r}}(t)$ for $0 \le j$, $N=T$ and $\gamma_1=\gamma_2=0$.
+The model parameters can be estimated using the maximum likelihood method i.e. $\beta_l$ for $l \in [1:3]$ and $\gamma_m$ for $m \in [1,2]$. The covariance matrix $\hat{\Sigma}(t+1)$ can then be estimated using the model equations. Then the portfolio can be optimized by substituting the estimates of $\hat{\Sigma}(t+1)$ and $\hat{r}_i(t+1)$ into the Mean-Variance model. Then through optimizing $W_{SR}$ the optimal weights of the portfolio can be found. This is the GARCH_DCC model in the analysis. 
+
+This definition and methodology can be extended to make use of alternative definitions of GARCH as it simply requires changing the defintition of the GARCH equation. Below the alternative definitions that are used are stated. It is important to note that some definitions fail to converge in a number of cases due to the nature of DCC. These definitions are not included in the analysis
+
+
+
+## Analasis of the potential of GAS-GARCH DCC in the optimization of a portfolio
+Generalized Autoregressive Score(GAS) or GAS-GARCH models are an extension to GARCH volatility modeling.
+
+Depending on the specification used GAS can encompass a number of different models. However, the specification that is of interest in this study is that of approximating GARCH using the GAS approach for GARCH models as developed by @creal2013generalized.
+Let $\epsilon\sigma$ denote the error term of the model with $\epsilon \sim n(0,1)$ under the univariate case. Now epsilon can be defined as
+
+$$\epsilon_t \sim p(\epsilon_t|f_t,F_t;\theta)$$
+
+Where $f_t$ is a time varying parameter, $F_t$ is the available information set at time $t$ and $\theta$ is the static parameter set. Using the following system of equations the updating equation can be found:
+
+$$f_{t+1}=\mathbf{\gamma} +\sum_{i=1}^pA_i s_{t-i} +\sum_{j=1}^q B_j f_{t-j+1}$$
+The autoregressive updating function. With $\mathbf{\gamma}$ the vector of constants $A_i$ and $B_j$ coefficient matrices of appropriat size and $s_{t-i}$ an appropriately scaled function. The unknown coefficients are the functions of the parameter vector $\theta$, i.e. $\gamma=\gamma(\theta), A_i=A_i(\theta)$ and $B_j=B_j(\theta)$ for all $i$ and $j$. The coefficients of $B_j$ determine the persistence of $f_{t}$
+The scaled derivative of the density function with respect to $f_t$ is determined to be the driving mechanism of the model. Different choices for the scaling matrix will result in different models.   Nelson and Foster (1994) derive that the optimal filtering properties for GARCH updating equation should be based on $I_{t|t-1}^{-\frac{1}{2}}$. However koopman WW finds that $I_{t|t-1}^{-1}$ brings the model closest to the well known GARCH models.
+$$s_t=S_t.\Lambda_t$$
+$$\Lambda_t=\frac{\delta ln (p(\epsilon_t|f_t,F_t;\theta))}{\delta f_t}$$
+$$S_t = I^{-1}_{t|t-1}$$
+$$I_{t|t-1}=E_{t-1}[\Lambda_t\Lambda_t']$$
+The Updating equation can then be found to be:
+$$f_{t+1}= \gamma +\alpha(\frac{v+3}{v})[(1+\frac{\epsilon_t^2}{(v-2)f_t})^{-1}(\frac{(v+1)}{(v-2)}\epsilon_t^2 -f_t]+\beta f_t$$
+Under the assumtion that $\epsilon_t\sigma_t$ follows a Students t-Distribution the variance can be forecast into the future as:
+$$\hat{\sigma}_{T+h}^2= \hat{\gamma} +\hat{\alpha}(\frac{\hat{v}+3}{\hat{v}})(\frac{4\hat{v}-5}{\hat{v}^2-3\hat{v}+4})\hat{\sigma}_t^2+\hat{\beta}\hat{\sigma}_{T+h-1}^2$$
+As $\hat{\epsilon}_{T+h-1}^2= \frac{\hat{v}}{\hat{v}-2}\hat{\sigma}^2_{T+h-1}$
+This is a close analagy to the GARCH model where if
+$\epsilon_t\sigma_t$ is normally distributed the GAS model will reduce to the GARCH model as $v$ is known.  The denominater term means that only a moderate increase in the variance will be recorded when a large new realization of $\epsilon_t$ is made. The intuition is thus clear. If the density of $\epsilon_t$ is tail-heavy a larfe observation of $\epsilon_t^2$ is not necessarily due to a change in the variance of the model. Rather it is a tail observation. This updating equation accounts for this through bounding the influence of $\epsilon_t$ on the variance.
+
+This model is transformed into the multivariate case simmilar to the GARCH model considered earlier. The fist step is to decompose the variance matrix.
+$$\mathbf{\Sigma}(t+1)=\mathbf{D}(t+1)\mathbf{R}(t+1)\mathbf{D}(t+1)$$
+That is the Engle WW method of DCC modeling. $\mathbf{D}(t+1)$ is the diagonal standard deviation matrix and $\mathbf{R}(t+1)$ is the symmetric conditional correlation matrix
+
+$R_(t)$, the conditional correlation matrix, can then be further decomposed as
+$$R(t+1)=\Delta^{-1}(t+1)Q(t+1)\Delta^{-1}(t)$$
+$Delta^{-1}(t)$is a diagonal matrix with the diagonal element equating to the square root of the diagonal elements of $Q(t)$ which is a symmetric positive definite matrix. This specification ensures the conditional correlation matrix is positive definite and symmetric with off-diagonal elements between minus one and one. The updating equation for univariates is now converted to the multivariate case when considering the Multivariate Student's t-distribution. $Q(t+1)$ is defined as the following:
+$$Q(t+1)=\Omega_{dcc}(I-A_{dcc}-B_{dcc}) +A_{dcc} \times \mathbf{y}(t)\mathbf{y}'(t)+B_{dcc}\times Q_t$$
+Where $\times$ is the element by element multiplication of two matrices and $\Omega_{dcc}, A_{dcc}$ and $B_{dcc}$ are unknown $n\times n$ matrices. $\Omega_{dcc}$ can be replaced in estimation with the sample correlation matrix of $y(t)$ and restricting $A_{dcc}=a_{dcc}ii'$ and $B_{dcc}=b_{dcc}ii'$ with $a_{dcc}$ and $b_{dcc}$ scalars and $i$ is a vector of ones. The updating equation that can provide the forecast covariance matrices thus becomes:
+$$\Psi(t) = \frac{\delta vech(\Sigma(t)}{\delta \mathbf{f}'(t)}$$
+Which is expanded by @creal2013generalized to give the full updating equation. This updating equation allows for the estimation of the conditional covariance matrix. The results are different when compared to the DCC model constructed earlier as it cannot collapse to the DCC model, it is significantly more difficult to estimate and the updating equation is driven by a single effect which is instead magnified by three different elements rather than having three different drivers as in the DCC case. However, a problem emerges with the GAS specification at this point.
+
+As above the GAS specification does not converge to the DCC specification [@creal2013generalized]. The great advantage of DCC specificaiton is that it allows for estimation of a covatiance matrix using GARCH specifications for a large number of shares with considerably fewer computations and with less data [@engle2002dynamic]. The fact that the GAS specification cannot collapse to the DCC specification and instead requires numerous estimates of the updating equation that is dependent on other estimates in the updating equation means the effectivity of DCC is lost. The model now requires intense computational resources that increases for each variable added. Adding more than 5 stocks to the multivariate model means leads to long computational periods which make backtesting and the model unfeasible for the JSE Top 40.
+
+## Alternative specification in DCC GARCH estimation
+
+The first alternative specification that is that of the intergrated GARCH or IGARCH model. This model limits that standard GARCH in such a way that $\beta_1+\beta_2=1$ in the standard GARCH definition [@orhan2012comparison]. This implies that the shocks within the system are persistent. This model therefore has a much longer memory than standard GARCH.
+
+The second alternative specification is exponential GARCH (EGARCH). This model attempts to account for the observed effect of assymetry of the effect of negative returns compared to positive returns on the volatility of a financial series [orhan2012comparison]. Negative shocks are observed to have have larger effects on volatility than positive shocks and are generally thought to be caused by the leverage effect [@figlewski2000leverage]. The leverage effect is normally thought to occur as when stocks fall thus raising the risks of those who have leverage within the market. Some do argue that the channel is too small to fully account for the effect [@figlewski2000leverage]. Nevertheless, the EGARCH model attempts capture the phenomenon through the following specification. 
+$$ln(\sigma^2_t)= \beta_0 +\beta_1(|\epsilon_{t-1}^2-E(|\epsilon_{t-1}^2|) |)  +\beta_2\epsilon_{t-1}^2 + \beta ln (\sigma^2_{t-1})$$
+EGARCH also captures other observed effects such as volatility clustering. Where volatility is likely to be high at time $t$ should it have been highat time $t-1$.  EGARCH also does not require restrictions in order to ensure that $\sigma>0$ as the $ln$ function of $\sigma$ ensures positivity.  
+
+The final alternative specification is that of Glosten-Jagannathan-Runkle GARCH (GJR-GARCH). This model also attempts to model the asymmetry of the effect of observations on the volatility [@nugroho2019empirical]. It, however, makes use of a different approach allowing for different weights of $\epsilon$ depending on the sign of the obsevation. It thus takes the following form. 
+$$\sigma^2_t= \beta_0 +(\beta_1 + \beta_2(I_{t-1}))\epsilon_{t-1}^2 + \beta \sigma^2_{t-1}$$
+With 
+$$I_{t-1}= 0\text{ if }  {r_{t-1}\leq\mu}$$  
+$$I_{t-1}= 1\text{ if }  {r_{t-1}>\mu}$$  
+These parameters can be estimated by maximum likelyhood to provide the best fit for the model. 
+
+These model specifications can all be extended using the DCC architecture provided above. The requirement that the DCC model converage is somewhat restricting in model choice. These chosen models all fail to converage at at least one time period with GJR-GARCH failing at multiple points. More advanced models fail such as APGARCH or the various skewed distribution GARCH models fail to converge multiple times making accurate estimation considerably more difficult. Calculation times for these models also increase making estimation harder. For the times that any model fail, the portfolio weights are not adjusted for that period and instead are simply maintained at the weighting that was achieved in the final period that the model did converge. 
+
+
+# Data  {-}
+
+## Limitations placed on the models and data.
+
+The aim of this study is to examine how portfolio optimization methods through the Mean-Variance portfolio model can improve and compare to the results of the JSE Top 40. This implies strict limitations that must be put in place in order to ensure the accuracy of this test. 
+
+The first and most important limitation is that no stock that was not included in the JSE at the time can be included into the estimation of the optimal Mean-Variance portfolio. It would not be fair to compare models that have extra stocks, or include stocks that are only included in the JSE top after they have grown to the required size, while the JSE is limited to the largest 40 stocks by market cap. Thus all stocks must be included in the JSE at each time period. 
+
+The second regards rebalancing period. The JSE Top 40 rebalances on a quarterly basis while during the quater the index floats. The Mean-Variance Portfolio model could update its weights on a daily basis on the other hand. However, daily rebalancing will increase the transaction costs and tracking error of any porfolio attempting to conduct portfolio optimization. Monthly, quarterly and yearly rebalancing should thus be considered. Of these options quarterly rebalancing would be the most accurate representation of real world results in this applications case. The tracking error between what the model predicts and what real world results will be smallest in this case due to increased transaction costs due to more trades, slippage of the price and management expenses. This will also put it the model estimations in line with the JSE rebalancing period.  Thereby providing the results that are the most comparable to the JSE Top 40 returns for each period.
+
+Finally, regards the data structure of the portfolio. It has been found that when a stock enters a new index its correlation to the index and other stocks within it changes. This is due to changes in how the stock is now traded and arbitrage opportunities. Using data that comes from periods that are prior to the stocks addition to the index will result in biased estimates for $\Sigma(t+1)$. Therefore a stock must have been included in the JSE Top 40 for 252, the lookback period for the models, daily observations before it is included in the models estimates. However, should only a few datapoints be missing from the data period those datapoints will be drawn from the stocks own distribution while maintaining the covariance structure.  The data used spans the time period of third January 2005 until fourteenth November 2019. In order to get an accurate return estimate the models will only be applied after observing three years of data such that positive returns are ensured. Returns will be estimated as the yearly return since the stock was included.
+
+## Data type and structure
+
+The data is transformed to find the log of daily returns. The log daily returns provides some useful statistical properties when compared to arithmetic returns as they can be summed together to get total returns rather than the more complicated process for arithmetic returns. This property allows the traditional statistical measures such as expected return and volatility be estimated through a much less complicated process. 
+
+Below is chart of all stocks prices over the timeframe involved. Note the stocks for whom data only appears later and those who are removed from the dataset when they drop out of the JSE Top 40
+```{r}
+library(rmsfuns)
+library(tidyverse)
+library(xtable)
+library(IntroCompFinR)
+pacman::p_load(tbl2xts)
+pacman::p_load("xts", "tidyverse", "tbl2xts", "PerformanceAnalytics",
+    "lubridate", "glue","roll")
+pacman::p_load("dplyr")
+
+#read in dataset
+DailyTop40 <- read_rds( "data/DailyTop40.rds")
+
+pacman::p_load("MTS", "robustbase")
+pacman::p_load("tidyverse", "devtools", "rugarch", "rmgarch",
+    "forecast", "tbl2xts", "lubridate", "PerformanceAnalytics",
+    "ggthemes", "parallel" )
+
+#just create a simple graph of all stocks make sure to remove legend for so many variables
+Graphdata <- DailyTop40 %>% select(date, PX_LAST,Tickers)
+
+ggplot(Graphdata) + geom_line(aes(x = date, y = PX_LAST, colour = Tickers, 
+    alpha = 0.5), show.legend = FALSE) + ggtitle("Price changes of stocks making up the JSE Top 40") + 
+    guides(alpha = FALSE) + theme_bw()
+
+
+
+
+
+
+
+```
+Conducting a Johansen integration test finds significant autocorrelation within the log returns series for all stocks. This implies that the GARCH or GAS methodologies will have success in the modeling of the volatilities of the stocks.
+
+The main results when examining the descriptave statistics are high kurtosis with positive skew in most stocks indicating non-normality and is confirmed by the Granger test for causality. This will cause estimation error within the standard definition of variance. However, GARCH or GAS models should not be affected by this.
+
+# Results
+To identify the optimal models three optimization methods are used. All optimizations assume a risk free rate of 0 which implies that there is no asset that can be invested in that provides a return without risk. Depending on the risk frontiers shape a lower risk free rate results in estimates of weights resulting in lower expected return and variance. In the first short sales are allowed up to a value of 50% of the total portfolio and the maximum investment in each stock is also limited to 50% of the portfolio. This portfolio is likely to be volatile as it has effectively been leveraged. Further, problems may also exist as estimates for $\hat{r}(t)$ may be different to what the long run returns truly are and thus this portfolio is likely to perform much worse out of sample when compared to others. The second optimization method allows for limited short sales of up to 5% of total portfolio weights and caps the size of positive weights at 30%. This will ensure that a more balanced portfolio will be made, however, the portfolio will still be concentrated and thus might experience higher shocks than the market as it is more highly levered. The final method of optimization will not allow for short sales and ensure at least 1% investment into each stock and that the upper limit of investment is placed at 20%. This will most likely yield a most stable returns series as there will be less concentration and no leverage is allowed. 
+
+Estimating and optimizing the models as defined thus yields a number of results.  The full monthly returns for all portfolios can be found in the appendix as it is a large amount of data. Considering only condensed information about the models will suffice in the examination of performance. The first measure of interest is the returns series which can be seen below.
+
+```{r}
+library(rmsfuns)
+library(tidyverse)
+library(xtable)
+library(IntroCompFinR)
+pacman::p_load(tbl2xts)
+pacman::p_load("xts", "tidyverse", "tbl2xts", "PerformanceAnalytics",
+    "lubridate", "glue","roll")
+pacman::p_load("dplyr")
+
+
+
+
+
+pacman::p_load("MTS", "robustbase")
+pacman::p_load("tidyverse", "devtools", "rugarch", "rmgarch",
+    "forecast", "tbl2xts", "lubridate", "PerformanceAnalytics",
+    "ggthemes", "parallel" )
+#read in model returns and create a plot of all monthly returns
+ModelPortfolios <- readRDS("ModelReturns.RDS")
+
+ggplot(ModelPortfolios) + geom_line(aes(x = date, y = returns, colour = Portfolios, 
+    alpha = 0.5), show.legend = TRUE) + ggtitle("Model Performance vs JSE Top 40") + 
+    guides(alpha = FALSE) + theme_bw()
+
+
+
+
+
+```
+As can be seen there are some models that are extremely volitile during the 2008 financial crisis. These are the highly leveraged portfolios. This graph is included to emphasize, that while increasing the leverage can increase returns it can lead to blowups of any fund fully invested in the portfolio should the volatility and correlation structure of the markets change rapidly. While some of the highly leveraged portfolios posted massive returns in 2008 the other highly leveraged portfolios resulted in extremely high losses, this is not entirely clear from this graph and is better examined in the downside risks analysis found below. Funds should thus be incredibly wary of the highly leveraged portfolios that allow for shorts of up to 50% of total capital when using portfolio optimization and DCC estimation together.  However, it might be argued that 2008 was an extreme event and that as those levels of returns were not observed again across the series that 2008 retuns be excluded. However, in the interest of examining robust portfolios that are not likely to fail these models should be excluded from further analysis.
+
+Thus after removing the highly leveraged portfolios that are too volatile to trade efficiently the graph changes as follows:
+
+```{r}
+library(rmsfuns)
+library(tidyverse)
+library(xtable)
+library(IntroCompFinR)
+pacman::p_load(tbl2xts)
+pacman::p_load("xts", "tidyverse", "tbl2xts", "PerformanceAnalytics",
+    "lubridate", "glue","roll")
+pacman::p_load("dplyr")
+pacman::p_load("tidyverse", "devtools", "rugarch", "rmgarch",
+    "forecast", "tbl2xts", "lubridate", "PerformanceAnalytics",
+    "ggthemes", "parallel" )
+
+
+#read in model returns gather the portfolio and create graph for the lower leverage portfolios
+LowerModelPortfolios <- readRDS("LowerleverageModelReturns.RDS")
+LowerModelPortfoliosGather <- LowerModelPortfolios %>%  gather(Portfolios, returns , -date)
+
+
+
+
+ggplot(LowerModelPortfoliosGather) + geom_line(aes(x = date, y = returns, colour = Portfolios, 
+    alpha = 0.5), show.legend = TRUE) + ggtitle("Lower leverage model returns vs JSE Top 40") + 
+    guides(alpha = FALSE) + theme_bw()
+
+
+
+
+
+```
+
+As can be seen in the above graph. Monthly returns are much lower around the 2008 financial crisis. However model that incorporates leverage would have gone negative in 2008. The other funds would have been able to recover. It thus seems that incorporating leverage into portfolio optimization by shorting some stocks while going long on others is considerably risky during volitile periods.
+
+The next graph represents cumulative performance of all portfolios over the full time period.
+
+```{r}
+library(rmsfuns)
+library(tidyverse)
+library(xtable)
+library(IntroCompFinR)
+pacman::p_load(tbl2xts)
+pacman::p_load("xts", "tidyverse", "tbl2xts", "PerformanceAnalytics",
+    "lubridate", "glue","roll")
+pacman::p_load("dplyr")
+pacman::p_load("tidyverse", "devtools", "rugarch", "rmgarch",
+    "forecast", "tbl2xts", "lubridate", "PerformanceAnalytics",
+    "ggthemes", "parallel" )
+
+#read in model returns
+ModelPortfolios <- readRDS("ModelReturns.RDS")
+
+
+#create cumulative returns be sure to group by portfolios otherwise it will run it across the entire column giving wrong results
+  Cum <- ModelPortfolios %>% group_by(Portfolios) %>% mutate(cumreturn = (cumprod(1 + returns) - 1))
+  Cum <- Cum %>% select(date, Portfolios, cumreturn)
+  
+  #just graph it 
+ggplot(Cum) + geom_line(aes(x = date, y = cumreturn, colour = Portfolios, 
+    alpha = 0.5), show.legend = TRUE) + ggtitle("All models cumulative returns") + 
+    guides(alpha = FALSE) + theme_bw()
+
+
+
+
+
+```
+
+Clearly the leveraged portfolios that did not go negative provided incredibly large returns. By removing the heavily leveraged portfolio the following graph is found.
+
+```{r}
+library(rmsfuns)
+library(tidyverse)
+library(xtable)
+library(IntroCompFinR)
+pacman::p_load(tbl2xts)
+pacman::p_load("xts", "tidyverse", "tbl2xts", "PerformanceAnalytics",
+    "lubridate", "glue","roll")
+pacman::p_load("dplyr")
+pacman::p_load("tidyverse", "devtools", "rugarch", "rmgarch",
+    "forecast", "tbl2xts", "lubridate", "PerformanceAnalytics",
+    "ggthemes", "parallel" )
+
+#same as aove just gather then calculate cumulative returns to graph
+LowerModelPortfolios <- readRDS("LowerleverageModelReturns.RDS")
+LowerModelPortfoliosGather <- LowerModelPortfolios %>%  gather(Portfolios, returns , -date)
+
+
+  Cum <- LowerModelPortfoliosGather %>% group_by(Portfolios) %>% mutate(cumreturn = (cumprod(1 + returns) - 1))
+  Cum <- Cum %>% select(date, Portfolios, cumreturn)
+  
+  
+
+ggplot(Cum) + geom_line(aes(x = date, y = cumreturn, colour = Portfolios, 
+    alpha = 0.5), show.legend = TRUE) + ggtitle("Only Limited Short Sales and no short sales") + 
+    guides(alpha = FALSE) + theme_bw()
+
+
+
+
+
+```
+Here it is clear that even portfolios that allow only limited short sales failed during the financial crisis and in fact performed worse than some of the highly leveraged portfolios. This implies that the robustness of portfolio optimation under the assumption that short positions can be taken is low. Any institution that adopts the DCC method, and mean variance for portfolio optimization, while they might experience higher returns during periods of low volatility, under a financial crisis the portfolios will have a tendency to fail as correlations break down.  This is emphasized in the following two graphs of cumulative returns should the 2008 financial crisis not be included in the dataset.
+
+```{r}
+library(rmsfuns)
+library(tidyverse)
+library(xtable)
+library(IntroCompFinR)
+pacman::p_load(tbl2xts)
+pacman::p_load("xts", "tidyverse", "tbl2xts", "PerformanceAnalytics",
+    "lubridate", "glue","roll")
+pacman::p_load("dplyr")
+pacman::p_load("tidyverse", "devtools", "rugarch", "rmgarch",
+    "forecast", "tbl2xts", "lubridate", "PerformanceAnalytics",
+    "ggthemes", "parallel" )
+
+
+# Here we need spread data so that we can use xts and remove all but certain dates.
+ModelPortfolios <- readRDS("ModelReturnsSpread.RDS") %>% tbl_xts()
+ModelPortfolios <- ModelPortfolios["2009-01-01/"] %>% xts_tbl()
+ModelPortfolios <- ModelPortfolios %>% gather(Portfolios, returns , -date)
+# now that dates are removed simply calculate cumulative returns and graph
+Cum <- ModelPortfolios %>% group_by(Portfolios) %>% mutate(cumreturn = (cumprod(1 + returns) - 1))
+  Cum <- Cum %>% select(date, Portfolios, cumreturn)
+  
+  
+ggplot(Cum) + geom_line(aes(x = date, y = cumreturn, colour = Portfolios, 
+    alpha = 0.5), show.legend = TRUE) + ggtitle("All models cumulative returns post 2009") + 
+    guides(alpha = FALSE) + theme_bw()
+
+
+
+
+```
+
+While there is high volatility in the highly leveraged stocks the cap on leverage is effectively $20\times$ which is achievable in financial markets, although risky, would have achieved spectacular results in absolute terms in the post financial crisis world.  All the leveraged portfolios completely dominate the other models in the post crisis timeframe. Removing them gives better insight into the models with restricted short sales
+
+```{r}
+library(rmsfuns)
+library(tidyverse)
+library(xtable)
+library(IntroCompFinR)
+pacman::p_load(tbl2xts)
+pacman::p_load("xts", "tidyverse", "tbl2xts", "PerformanceAnalytics",
+    "lubridate", "glue","roll")
+pacman::p_load("dplyr")
+pacman::p_load("tidyverse", "devtools", "rugarch", "rmgarch",
+    "forecast", "tbl2xts", "lubridate", "PerformanceAnalytics",
+    "ggthemes", "parallel" )
+#same as above need xts data then gather to calculate cumulative returns and then graph
+LowerModelPortfolios <- readRDS("LowerleverageModelReturns.RDS")  %>% tbl_xts()
+LowerModelPortfolios <- LowerModelPortfolios["2009-01-01/"] %>% xts_tbl()
+LowerModelPortfoliosGather <- LowerModelPortfolios %>%  gather(Portfolios, returns , -date)
+
+
+Cum <- LowerModelPortfoliosGather %>% group_by(Portfolios) %>% mutate(cumreturn = (cumprod(1 + returns) - 1))
+  Cum <- Cum %>% select(date, Portfolios, cumreturn)
+  
+  
+ggplot(Cum) + geom_line(aes(x = date, y = cumreturn, colour = Portfolios, 
+    alpha = 0.5), show.legend = TRUE) + ggtitle("All models cumulative returns post 2009") + 
+    guides(alpha = FALSE) + theme_bw()
+
+
+
+
+```
+From the second graph the returns to the portfolios that make use of limited short sales are very attractive. They seem to not be considerably volatile while posting solid returns and would thus be very attractive. This form of optimization also seems very robust over this time period with all models performing similar to each other. This can be confirmed through examining the correlation matrix between the various models. 
+```{r}
+library(rmsfuns)
+library(tidyverse)
+library(xtable)
+library(IntroCompFinR)
+pacman::p_load(tbl2xts)
+pacman::p_load("xts", "tidyverse", "tbl2xts", "PerformanceAnalytics",
+    "lubridate", "glue","roll")
+pacman::p_load("dplyr")
+pacman::p_load("tidyverse", "devtools", "rugarch", "rmgarch",
+    "forecast", "tbl2xts", "lubridate", "PerformanceAnalytics",
+    "ggthemes", "parallel" )
+
+load_pkg("knitr")
+
+LowerModelPortfolios <- readRDS("LowerleverageModelReturns.RDS")  %>% tbl_xts()
+LowerModelPortfolios <- LowerModelPortfolios["2009-01-01/"] %>% xts_tbl()
+LowerModelPortfolios <- LowerModelPortfolios %>% select(date, sGARCHlim, iGARCHlim, eGARCHlim, gjrGARCHlim, JSETop40) %>% tbl_xts()
+# find correlation matrix after removing 2008
+correlationmarix <- cor(LowerModelPortfolios, method = "pearson")
+
+kable(correlationmarix , caption = "Correlation matrix of limited short sales Portfolios and JSE Top 40 ")
+
+```
+As can be seen from the correlation matrix the correlation between the different models is almost always at least 98%. This is true for all other models in the post 2008 timeframe, the models with certain restrictions are highly correlated to the other models that have those restriction. Also of interest is that the models are negatively correlated to the JSE Top 40, the composite of whose assets these portfolios are constructed. This implies that diversification benifits could be achieved through having some proportion of funds invested in the optimization method and another proportion in the JSE Top 40. This would be possible as long as the return to risk trade off is favorable for those models.
+
+The next step in the analysis is that of examining the portfolio statistics. This allows the models to be compared in an apples to apples method, rather than examining only absolute returns by examining downside risks and Sharpe ratios.The first table represent downside risks of the highly leveraged portfolios over the entire time period.
+
+```{r}
+library(rmsfuns)
+library(tidyverse)
+library(xtable)
+library(IntroCompFinR)
+pacman::p_load(tbl2xts)
+pacman::p_load("xts", "tidyverse", "tbl2xts", "PerformanceAnalytics",
+    "lubridate", "glue","roll")
+pacman::p_load("dplyr")
+pacman::p_load("tidyverse", "devtools", "rugarch", "rmgarch",
+    "forecast", "tbl2xts", "lubridate", "PerformanceAnalytics",
+    "ggthemes", "parallel" )
+
+load_pkg("knitr")
+ModelPortfolios <- readRDS("ModelReturnsSpread.RDS")
+
+
+# create a table of the downside risk analysis
+tableRiskAnalysis <- table.DownsideRisk(ModelPortfolios %>% tbl_xts(.), ci = 0.95, Rf = 0, MAR = 0)
+# we want to add standard deviation too this table this is done below
+sharpP <- SharpeRatio(ModelPortfolios %>%  tbl_xts)
+# now rbind it together 
+tableRiskAnalysis <- rbind(tableRiskAnalysis, sharpP)
+# annualized returns
+returns <- Return.annualized(ModelPortfolios %>% tbl_xts(), scale = 12, geometric = TRUE)
+#bind
+tableRiskAnalysis <- rbind(tableRiskAnalysis, returns)
+
+
+# print table
+kable(tableRiskAnalysis %>% select(sGARCHnolim, iGARCHnolim, eGARCHnolim, gjrGARCHnolim, JSETop40), caption = "Downside Risk estimates of no limit short sales Portfolios for entire period ")
+
+
+```
+
+Clearly 3 out of of the 4 modeled portfolios failed during 2008 as they have maximum drawdowns higher than 1. Only the standard GARCH model did not go under. From the table it can be seen that the JSE Top 40 had a maximum drawdown of 73% which is almost exactly the same as that of the standard GARCH model. The standard GARCH model also performed the best when considering a Sharpe ratio with risk free rate of return of 0% and achivied yearly returns above 190%. However all models are very distant to a Sharpe ratio of 2 which is the ideal. The JSE also performed much better in other risk measures such as the semideviation performing multiple times better than the standard GARCH optimization model. The JSE Top 40 and the leveraged portfolio of standard GARCH optimization are thus very similar in their risk return equation. While the max downside risk of both are simmilar, the standard GARCH model is much more volitile. It makes up for this through much higher annualized returns. As can be seen below standard GARCH actually performs the best of all models in terms of the Sharpe ratio. 
+
+This, however, may be selection bias. Altogether twelve models were fitted of which only one managed to outperform the JSE Top 40 over the entire timeframe. It is considerably likely that this was due to luck and thus further out of sample testing should be done to ensure accuracy and robustness before any implimentation.
+
+```{r}
+
+# just use previous table again selecting lower risk portfolios
+kable(tableRiskAnalysis %>% select(sGARCHlim, iGARCHlim, eGARCHlim, gjrGARCHlim, JSETop40), caption = "Downside Risk estimates of limited short sales Portfolios for entire period ")
+
+
+```
+Here it is clear that all the optimization models failed in the financial crisis as maximum drawdowns exceed 1. Further analysis is irrelevant for this timeframe, with the JSE Top 40 clearly outperforming.
+
+```{r}
+
+# just use previous table again selecting lower risk portfolios
+kable(tableRiskAnalysis %>% select(sGARCHnoshort, iGARCHnoshort, eGARCHnoshort, gjrGARCHnoshort, JSETop40), caption = "Downside Risk estimates of no short sales Portfolios for entire period ")
+
+
+```
+These are the models that are the closest to the JSE Top 40 as they allow for no short sales.  What is interesting here is that the optimization models have semi deviations that are 50% lower than that of the JSE Top 40. They also performed better in the gain deviation and loss deviation measures.  These models also performed slightly better in the maximum drawdown measure. The Sharpe ratios of these models while slighly lower than the JSE Top 40 are not considerably different.  While all these models survived the crisis and performed slightly better in the downside risk measures they all had returns that were lower than the JSE Top 40. Here GJR-GARCH clearly performed the best only underperforming the JSE Top 40 slightly. These models could all potentially be implemented to reduce downside risk and volatility. However they are outperformed by the JSE Top 40 in the risk to return equation. 
+
+Examining these models in the post 2008 timeframe may also be of interest. This can highlight the strenghts and weaknesses of the models though the examination over different periods.
+
+```{r}
+library(rmsfuns)
+library(tidyverse)
+library(xtable)
+library(IntroCompFinR)
+pacman::p_load(tbl2xts)
+pacman::p_load("xts", "tidyverse", "tbl2xts", "PerformanceAnalytics",
+    "lubridate", "glue","roll")
+pacman::p_load("dplyr")
+pacman::p_load("tidyverse", "devtools", "rugarch", "rmgarch",
+    "forecast", "tbl2xts", "lubridate", "PerformanceAnalytics",
+    "ggthemes", "parallel" )
+
+load_pkg("knitr")
+# Here we need spread data so that we can use xts and remove all but certain dates.
+ModelPortfolios <- readRDS("ModelReturnsSpread.RDS") %>% tbl_xts()
+ModelPortfolios <- ModelPortfolios["2009-01-01/"] %>% xts_tbl()
+
+
+# create a table of the downside risk analysis
+tableRiskAnalysis <- table.DownsideRisk(ModelPortfolios %>% tbl_xts(.), ci = 0.95, Rf = 0, MAR = 0)
+# we want to add standard deviation too this table this is done below
+sharpP <- SharpeRatio(ModelPortfolios %>%  tbl_xts)
+# now rbind it together 
+tableRiskAnalysis <- rbind(tableRiskAnalysis, sharpP)
+# annualized returns
+returns <- Return.annualized(ModelPortfolios %>% tbl_xts(), scale = 12, geometric = TRUE)
+#bind
+tableRiskAnalysis <- rbind(tableRiskAnalysis, returns)
+
+
+# print table
+kable(tableRiskAnalysis %>% select(sGARCHnolim, iGARCHnolim, eGARCHnolim, gjrGARCHnolim, JSETop40), caption = "Downside Risk estimates of no limit short sales Portfolios for post 2008 period ")
+
+
+```
+No models failed after the financial crisis.  Of the models that have relaxed restrictions on short sales all had higher Sharpe Ratios than the JSE Top 40 and thus theoretically have better return to risk characteristics than the JSE Top 40. It could therefore be argued that they outperformed the JSE Top 40. However in terms of downside risk estimation the picture is not as good for these models. All have significantly higher maximum drawdowns of over 76% and have semi deviations almost 4 times higher than the JSE Top 40. Thus the Sharpe ratios that use VaR and ES instead of volatility indicate that the JSE Top 40 was much more competitive than the standard deviation Sharpe ratio indicates. This gives insight into the earlier table as well as it indicates that the standard GARCH model suffered multiple max drawdowns of more than 70% which indicates a series that investors are very unlikly to find attractive no matter that the returns are extrodinary. When considering these models transaction and carrying costs are not included which could very well lower the risk return relationships to be almost the same as that of the JSE Top 40.
+
+```{r}
+
+# just use previous table again selecting lower risk portfolios
+kable(tableRiskAnalysis %>% select(sGARCHlim, iGARCHlim, eGARCHlim, gjrGARCHlim, JSETop40), caption = "Downside Risk estimates of limited short sales Portfolios for post 2008 period ")
+
+
+```
+The limited short models provide some evidence of significant outperformance of portfolio optimization over that of buying the index. In this case all models outperformed the JSE in terms of downside risk measures, maximum drawdowns, and Sharpe ratios while providing superior returns. While all of these models failed during the financial crisis, post crisis, they have provided significant and persistent outperformance as can be confirmed by the earlier graphs. The final table contains the downside statistics for the no short sales models.
+
+```{r}
+
+# just use previous table again selecting lower risk portfolios
+kable(tableRiskAnalysis %>% select(sGARCHnoshort, iGARCHnoshort, eGARCHnoshort, gjrGARCHnoshort, JSETop40), caption = "Downside Risk estimates of no short sales Portfolios for post 2008 period ")
+
+
+```
+In terms of downside risk measures the no short sales portfolio does perform better than the JSE Top 40 and have max drawdowns that are less than that of the JSE Top 40. However, they fail to deliver the same levels of returns likely due to the limits placed on the portfolio. While they slightly underpeform when looking at the Sharpe ratios the differences are minimal. All the returns series across all models are very similar with only minor differences in returns and variances. This implies that there is no significant difference between the various GARCH methods of calculating variance and that all are relatively robust. Standard GARCH being the easiest to explain and calculate under the DCC setting and not inducing many problems with convergence should thus be the model that could be examined further in the future. Further analysis would be to examine the optimal restrictions that should be placed on short selling. As it appears there may be a sweet spot somewhere between the limited and no short sales models that leads to superior returns but to no failures due to adverse market conditions.
+
+# Conclustions
+
+Portfolio optimization has a long history of being attempted with many different approaches that could be taken due to the ease at which different models can be incorporated into the underlying methodology. GAS modeling of the covariance matrix while theoretically possible does not reduce to an updating equation that can incorporate many different assets. This is due to the updating equation not condensing to the DCC methodology which allows for multivariate GARCH estimation with much less computational power.  GAS could however potentially be used in cross asset class analysis where assets are much more limited in number.  
+
+No significant difference between the various GARCH specifications are found and high correlations between the various limitations placed on the models implies that they truly provide similar returns and that future analysis can focus on the use of standard GARCH only. This is due to the fact it converges in almost all cases, is easier to explain and calculate, and that it does not provide significantly different results to the other specifications in most cases. The fact that the returns on the optimization portfolios are relatively uncorrelated with the JSE implies that diversification benefits can be achieved over the long term through investing in this method.
+
+From the analysis that is conducted above the prospect for the use of DCC modeling is mixed. Including the crisis period most models including short would have gone under while models that did not use short sales survived they did not provide outperformance over the JSE Top 40 in the long term. This would imply that the efficient market hypothesis stands and that all things considered the market cap weighted portfolio performs best. In the post 2008 timeframe it does appear that portfolio optimization by DCC GARCH methodologies provides significant outperformance especially when considering the limited short sales allowed case. It might be that a sweet spot for performance exists between the two optimization limitations. Alternatively different optimization methods might give different results and could be an area for further study. 
+
+The fact that there are diversification benefits that may be achieved through the DCC GARCH optimization methods implies that there may be a market niche for this optimization to help investors recieve a smoother return.  The problem of the blowups during the financial crisis is likely due to the fact that correlations often break down during these periods with all shares correlations tending to 1 as the market as a whole falls. The optimization thus breaks down. Should methods be found and incoporated such that exposure is reduced in such periods this method may be greatly enhanced.
+
+Ultimately, the efficient market hypothesis as proposed earlier holds when the entire period is considered although it may not hold when markets and correlations between assets are more stable. However identifying these periods is a problem that is not easily solved either.
+
+
+
+
+
+\newpage
+
+# References {-}
+
+<div id="refs"></div>
+
+
+# Appendix {-}
+
+## Appendix A {-}
+
+Some appendix information here
+
+## Appendix B {-}
+
